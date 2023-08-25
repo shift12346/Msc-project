@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Rafael Local Files\Github\OpenXR-OpenGL-Example\build\CMakeFiles\f35b70184e78e7a27786087e5fa9d1de\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{E5316C9C-1176-347F-B937-0D9FA001011A}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

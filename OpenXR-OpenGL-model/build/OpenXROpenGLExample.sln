@@ -1,0 +1,44 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32014.148
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenXROpenGLExample", "OpenXROpenGLExample.vcxproj", "{86B771A6-6DC8-3FC9-AA2B-F384EC0CBAB2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{377E70AF-881B-31AC-9C75-333A9DED6254} = {377E70AF-881B-31AC-9C75-333A9DED6254}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "openxr-gfxwrapper", "openxr-gfxwrapper.vcxproj", "{377E70AF-881B-31AC-9C75-333A9DED6254}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		MinSizeRel|x64 = MinSizeRel|x64
+		Release|x64 = Release|x64
+		RelWithDebInfo|x64 = RelWithDebInfo|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{86B771A6-6DC8-3FC9-AA2B-F384EC0CBAB2}.Debug|x64.ActiveCfg = Debug|x64
+		{86B771A6-6DC8-3FC9-AA2B-F384EC0CBAB2}.Debug|x64.Build.0 = Debug|x64
+		{86B771A6-6DC8-3FC9-AA2B-F384EC0CBAB2}.MinSizeRel|x64.ActiveCfg = MinSizeRel|x64
+		{86B771A6-6DC8-3FC9-AA2B-F384EC0CBAB2}.MinSizeRel|x64.Build.0 = MinSizeRel|x64
+		{86B771A6-6DC8-3FC9-AA2B-F384EC0CBAB2}.Release|x64.ActiveCfg = Release|x64
+		{86B771A6-6DC8-3FC9-AA2B-F384EC0CBAB2}.Release|x64.Build.0 = Release|x64
+		{86B771A6-6DC8-3FC9-AA2B-F384EC0CBAB2}.RelWithDebInfo|x64.ActiveCfg = RelWithDebInfo|x64
+		{86B771A6-6DC8-3FC9-AA2B-F384EC0CBAB2}.RelWithDebInfo|x64.Build.0 = RelWithDebInfo|x64
+		{377E70AF-881B-31AC-9C75-333A9DED6254}.Debug|x64.ActiveCfg = Debug|x64
+		{377E70AF-881B-31AC-9C75-333A9DED6254}.Debug|x64.Build.0 = Debug|x64
+		{377E70AF-881B-31AC-9C75-333A9DED6254}.MinSizeRel|x64.ActiveCfg = MinSizeRel|x64
+		{377E70AF-881B-31AC-9C75-333A9DED6254}.MinSizeRel|x64.Build.0 = MinSizeRel|x64
+		{377E70AF-881B-31AC-9C75-333A9DED6254}.Release|x64.ActiveCfg = Release|x64
+		{377E70AF-881B-31AC-9C75-333A9DED6254}.Release|x64.Build.0 = Release|x64
+		{377E70AF-881B-31AC-9C75-333A9DED6254}.RelWithDebInfo|x64.ActiveCfg = RelWithDebInfo|x64
+		{377E70AF-881B-31AC-9C75-333A9DED6254}.RelWithDebInfo|x64.Build.0 = RelWithDebInfo|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D79E6215-23A4-3433-A72C-1D61C490EED9}
+	EndGlobalSection
+EndGlobal

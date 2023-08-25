@@ -1,0 +1,4 @@
+C:/Rafael Local Files/Github/OpenXR-OpenGL-Example/build/CMakeFiles/openxr-gfxwrapper.dir
+C:/Rafael Local Files/Github/OpenXR-OpenGL-Example/build/CMakeFiles/OpenXROpenGLExample.dir
+C:/Rafael Local Files/Github/OpenXR-OpenGL-Example/build/CMakeFiles/ALL_BUILD.dir
+C:/Rafael Local Files/Github/OpenXR-OpenGL-Example/build/CMakeFiles/ZERO_CHECK.dir

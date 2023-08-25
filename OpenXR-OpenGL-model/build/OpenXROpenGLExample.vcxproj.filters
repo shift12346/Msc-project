@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{6DC7FDAA-0834-3F15-88A1-38EBE57A18CC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{4f6a79d5-4e47-4b97-87a5-d9ed5287cd40}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="pixMix">
+      <UniqueIdentifier>{ccfa1bf2-a6cb-4c94-83bd-2ea1e9b6d68e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(SolutionDir)..\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PixMix.cpp" />
+    <ClCompile Include="OneLvPixMix.cpp" />
+    <ClCompile Include="Utilities.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\shaders\basic.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\basic.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\rtt.geom">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\rtt.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\rtt.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="packages.config" />
+    <None Include="..\shaders\skybox.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\skybox.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="quad.vert" />
+    <None Include="quad.frag" />
+    <None Include="scene1.vert" />
+    <None Include="scene1.frag" />
+    <None Include="scene2.vert" />
+    <None Include="scene2.frag" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="skybox\back.jpg" />
+    <Image Include="skybox\bottom.jpg" />
+    <Image Include="skybox\front.jpg" />
+    <Image Include="skybox\left.jpg" />
+    <Image Include="skybox\right.jpg" />
+    <Image Include="skybox\top.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="PixMix.h" />
+    <ClInclude Include="OneLvPixMix.h" />
+    <ClInclude Include="Utilities.h" />
+    <ClInclude Include="modelLoader.hpp" />
+    <ClInclude Include="mesh.hpp" />
+  </ItemGroup>
+</Project>

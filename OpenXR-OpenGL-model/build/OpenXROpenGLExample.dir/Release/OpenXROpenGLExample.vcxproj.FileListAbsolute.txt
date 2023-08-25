@@ -1,0 +1,4 @@
+F:\VR\OpenXR\OpenXR-OpenGL-model\build\Release\assimp-vc143-mt.dll
+F:\VR\OpenXR\OpenXR-OpenGL-model\build\Release\zlib1.dll
+F:\VR\OpenXR\OpenXR-OpenGL-model\build\Release\pugixml.dll
+F:\VR\OpenXR\OpenXR-OpenGL-model\build\OpenXROpenGLExample.dir\Release\OpenXROpenGLExample.vcxproj.CopyComplete
