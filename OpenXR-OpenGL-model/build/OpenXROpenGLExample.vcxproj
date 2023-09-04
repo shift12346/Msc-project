@@ -316,7 +316,6 @@
     <ClCompile Include="$(SolutionDir)..\main.cpp" />
     <ClCompile Include="OneLvPixMix.cpp" />
     <ClCompile Include="PixMix.cpp" />
-    <ClCompile Include="Utilities.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(SolutionDir)..\build\openxr-gfxwrapper.vcxproj">
@@ -349,11 +348,8 @@
     <Image Include="skybox\top.jpg" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="mesh.hpp" />
-    <ClInclude Include="modelLoader.hpp" />
     <ClInclude Include="OneLvPixMix.h" />
     <ClInclude Include="PixMix.h" />
-    <ClInclude Include="Utilities.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

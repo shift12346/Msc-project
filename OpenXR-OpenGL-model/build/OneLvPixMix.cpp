@@ -1,5 +1,5 @@
 #include "OneLvPixMix.h"
-
+// code implmentation based on the https://github.com/Mugichoko445/PixMix-Inpainting
 namespace dr
 {
 	namespace det
@@ -16,52 +16,73 @@ namespace dr
 
 		OneLvPixMix::~OneLvPixMix() { }
 
-		void OneLvPixMix::Init(const cv::Mat3b& color, const cv::Mat1b& mask)
+		void OneLvPixMix::Initilization(const cv::Mat3b& color, const cv::Mat1b& mask)
 		{
+			// Set up random number generators
 			std::random_device rnd;
 			mt = std::mt19937(rnd());
 			cRand = std::uniform_int_distribution<int>(0, color.cols - 1);
 			rRand = std::uniform_int_distribution<int>(0, color.rows - 1);
 
+			// Create borders for color and mask
 			cv::copyMakeBorder(color, mColor[W_BORDER], borderSize, borderSize, borderSize, borderSize, cv::BORDER_REFLECT);
 			cv::copyMakeBorder(mask, mMask[W_BORDER], borderSize, borderSize, borderSize, borderSize, cv::BORDER_REFLECT);
-			mColor[WO_BORDER] = cv::Mat(mColor[W_BORDER], cv::Rect(borderSize, borderSize, color.cols, color.rows));
-			mMask[WO_BORDER] = cv::Mat(mMask[W_BORDER], cv::Rect(borderSize, borderSize, mask.cols, mask.rows));
 
+			// Extract the interior (non-border) parts
+			cv::Rect interiorRect(borderSize, borderSize, color.cols, color.rows);
+			mColor[WO_BORDER] = cv::Mat(mColor[W_BORDER], interiorRect);
+			mMask[WO_BORDER] = cv::Mat(mMask[W_BORDER], interiorRect);
+
+			// Initialize position map
 			mPosMap[WO_BORDER] = cv::Mat2i(mColor[WO_BORDER].size());
+
 			for (int r = 0; r < mPosMap[WO_BORDER].rows; ++r)
 			{
 				for (int c = 0; c < mPosMap[WO_BORDER].cols; ++c)
 				{
-					if (mMask[WO_BORDER](r, c) == 0) mPosMap[WO_BORDER](r, c) = GetValidRandPos();
-					else mPosMap[WO_BORDER](r, c) = cv::Vec2i(r, c);
+					if (mMask[WO_BORDER].at<uchar>(r, c) == 0)
+						mPosMap[WO_BORDER].at<cv::Vec2i>(r, c) = GetValidRandPos();
+					else
+						mPosMap[WO_BORDER].at<cv::Vec2i>(r, c) = cv::Vec2i(r, c);
 				}
 			}
+
+			// Add borders to the position map
 			cv::copyMakeBorder(mPosMap[WO_BORDER], mPosMap[W_BORDER], borderSizePosMap, borderSizePosMap, borderSizePosMap, borderSizePosMap, cv::BORDER_REFLECT);
+
+			// Reassign interior part of position map
 			mPosMap[WO_BORDER] = cv::Mat(mPosMap[W_BORDER], cv::Rect(1, 1, color.cols, color.rows));
 		}
 
-		void OneLvPixMix::Run(const PixMixParams& params)
+		void OneLvPixMix::execute(const PixMixParams& params)
 		{
-			const float thDist = std::pow(std::max(mColor[WO_BORDER].cols, mColor[WO_BORDER].rows) * params.threshDist, 2.0f);
+			// Calculate threshold distance based on image dimensions and the given parameter
+			float thresholdDistance = std::pow(std::max(mColor[WO_BORDER].cols, mColor[WO_BORDER].rows) * params.threshDist, 2.0f);
 
-			for (int itr = 0; itr < params.maxItr; ++itr)
+			float alphaValue = params.alpha;
+			float complementAlphaValue = 1.0f - alphaValue;
+
+			for (int iteration = 0; iteration < params.maxItr; ++iteration)
 			{
-				FwdUpdate(params.alpha, 1.0f - params.alpha, thDist, params.maxRandSearchItr);
-				BwdUpdate(params.alpha, 1.0f - params.alpha, thDist, params.maxRandSearchItr);
+				FwdUpdate(alphaValue, complementAlphaValue, thresholdDistance, params.maxRandSearchItr);
+				BwdUpdate(alphaValue, complementAlphaValue, thresholdDistance, params.maxRandSearchItr);
 				Inpaint();
 			}
 		}
 
 		void OneLvPixMix::Inpaint()
 		{
-			for (int r = 0; r < mColor[WO_BORDER].rows; ++r)
+			cv::Mat3b& currentColor = mColor[WO_BORDER];
+			const int numRows = currentColor.rows;
+			const int numCols = currentColor.cols;
+
+			for (int r = 0; r < numRows; ++r)
 			{
-				auto ptrColor = mColor[WO_BORDER].ptr<cv::Vec3b>(r);
+				auto ptrColor = currentColor.ptr<cv::Vec3b>(r);
 				auto ptrPosMap = mPosMap[WO_BORDER].ptr<cv::Vec2i>(r);
-				for (int c = 0; c < mColor[WO_BORDER].cols; ++c)
+				for (int c = 0; c < numCols; ++c)
 				{
-					ptrColor[c] = mColor[WO_BORDER](ptrPosMap[c]);
+					ptrColor[c] = currentColor.at<cv::Vec3b>(ptrPosMap[c]);
 				}
 			}
 		}
@@ -92,22 +113,34 @@ namespace dr
 		)
 		{
 			const float normFctor = 255.0f * 255.0f * 3.0f;
+			const float maxCostContribution = FLT_MAX / 25.0f;
 
 			float ac = 0.0f;
+
+			cv::Mat1b& currentMask = mMask[W_BORDER];
+			cv::Mat3b& currentColor = mColor[W_BORDER];
+
 			for (int r = 0; r < windowSize; ++r)
 			{
-				uchar* ptrMask = mMask[W_BORDER].ptr<uchar>(r + ref[0]);
-				cv::Vec3b* ptrTargetColor = mColor[W_BORDER].ptr<cv::Vec3b>(r + target[0]);
-				cv::Vec3b* ptrRefColor = mColor[W_BORDER].ptr<cv::Vec3b>(r + ref[0]);
+				int rowOffsetRef = r + ref[0];
+				int rowOffsetTarget = r + target[0];
+
+				auto ptrMask = currentMask.ptr<uchar>(rowOffsetRef);
+				auto ptrTargetColor = currentColor.ptr<cv::Vec3b>(rowOffsetTarget);
+				auto ptrRefColor = currentColor.ptr<cv::Vec3b>(rowOffsetRef);
+
 				for (int c = 0; c < windowSize; ++c)
 				{
-					if (ptrMask[c + ref[1]] == 0)
+					int colOffsetRef = c + ref[1];
+					int colOffsetTarget = c + target[1];
+
+					if (ptrMask[colOffsetRef] == 0)
 					{
-						ac += FLT_MAX / 25.0f;
+						ac += maxCostContribution;
 					}
 					else
 					{
-						cv::Vec3f diff(cv::Vec3f(ptrTargetColor[c + target[1]]) - cv::Vec3f(ptrRefColor[c + ref[1]]));
+						cv::Vec3f diff = cv::Vec3f(ptrTargetColor[colOffsetTarget]) - cv::Vec3f(ptrRefColor[colOffsetRef]);
 						ac += diff.dot(diff);
 					}
 				}

@@ -1049,64 +1049,6 @@ unsigned int loadInpaintedTexture(cv::Mat& image)
     return texture;
 }
 
-
-
-cv::Mat CaptureOpenGLFrame()
-{
-    GLint viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    int x = viewport[0];
-    int y = viewport[1];
-    int width = viewport[2];
-    int height = viewport[3];
-    //std::cout << "width" << width << std::endl;
-
-    std::vector<unsigned char> pixels(width * height * 4);
-    glReadPixels(x, y, width, height, GL_BGR, GL_UNSIGNED_BYTE, pixels.data());
-
-    cv::Mat image(height, width, CV_8UC3, pixels.data());
-    cv::flip(image, image, 0); // Flip the image vertically
-
-    //cv::imshow("OpenGL Frame", image); // Display the image
-    //cv::waitKey(1); // Update the window
-    cv::Mat gray;
-    cv::cvtColor(image, gray, cv::COLOR_BGRA2GRAY);
-
-    // Threshold the grayscale image
-    cv::Mat binary;
-    cv::threshold(gray, binary, 254, 255, cv::THRESH_BINARY_INV);
-    //cv::imshow("OpenGL Frame", binary); // Display the image
-    //cv::waitKey(1); // Update the window
-
-
-
-    cv::Mat inpainted;
-    //std::cout << int(binary.type() == CV_8UC1) << std::endl;
-
-    //img = cv.imread('messi_2.jpg')
-    //mask = cv.imread('mask2.png', cv.IMREAD_GRAYSCALE)
-    //dst = cv.inpaint(img, mask, 3, cv.INPAINT_TELEA)
-    //cv::Mat binaryColor;
-    //cv::cvtColor(binary, binaryColor, cv::COLOR_GRAY2BGR);
-    dr::PixMix pm;
-    dr::det::PixMixParams params;
-    params.alpha = 0.0f;			// 0.0f means no spatial cost considered
-    params.maxItr = 1;				// set to 1 to crank up the speed
-    params.maxRandSearchItr = 1;	// set to 1 to crank up the speed
-    bool debugViz = false;
-    pm.Run(image, binary, inpainted, params, debugViz);
-//cv::imwrite(pathToDstColor, inpainted);
-    cv::imshow("Inpainted color image", inpainted);
-    cv::waitKey(1);
-
-    //std::cout << int(image.type() == CV_8UC3) << std::endl;
-    //std::cout << "inpainting...";
-    //inpaint(image, binaryColor, K, inpainted, 500);
-    std::cout << " done!" << std::endl;
-
-    return inpainted;
-}
-
 std::unique_ptr<Model> ourModelPtr;
 static void OpenGLInitializeResources()
 {
@@ -1165,7 +1107,7 @@ static void OpenGLInitializeResources()
     glDeleteShader(vertexShader1);
     glDeleteShader(fragmentShader1);
 
-    //qudaShader
+    //qudaShader(plane for right eye)
     GLuint vertexShader2 = glCreateShader(GL_VERTEX_SHADER);
     std::string vertexShaderStr2 = ReadShaderFromFile("quad.vert");
     const char* c_str2 = vertexShaderStr2.c_str();
@@ -1180,7 +1122,7 @@ static void OpenGLInitializeResources()
     glCompileShader(fragmentShader2);
     CheckShader(fragmentShader2);
 
-    g_programQuad = glCreateProgram(); //todo
+    g_programQuad = glCreateProgram(); 
     glAttachShader(g_programQuad, vertexShader2);
     glAttachShader(g_programQuad, fragmentShader2);
     glLinkProgram(g_programQuad);
@@ -1190,7 +1132,7 @@ static void OpenGLInitializeResources()
     glDeleteShader(vertexShader2);
     glDeleteShader(fragmentShader2);
 
-    // scene1 
+    // scene shader
     GLuint vertexScene1Shader = glCreateShader(GL_VERTEX_SHADER);
     std::cout << "problem here" << std::endl;
     std::string vertexScene1ShaderStr = ReadShaderFromFile("scene1.vert");
@@ -1206,7 +1148,7 @@ static void OpenGLInitializeResources()
     glCompileShader(fragmentScene1Shader);
     CheckShader(fragmentScene1Shader);
 
-    g_programScene1 = glCreateProgram(); //todo
+    g_programScene1 = glCreateProgram(); 
     glAttachShader(g_programScene1, vertexScene1Shader);
     glAttachShader(g_programScene1, fragmentScene1Shader);
     glLinkProgram(g_programScene1);
@@ -1215,8 +1157,6 @@ static void OpenGLInitializeResources()
     ////// delete the shaders as they're linked into our program now and no longer necessary
     glDeleteShader(vertexScene1Shader);
     glDeleteShader(fragmentScene1Shader);
-
-
 
 
     //SKYBOX
@@ -1250,7 +1190,6 @@ static void OpenGLInitializeResources()
                           reinterpret_cast<const void*>(sizeof(XrVector3f)));
 
 
-
     std::vector<std::string> faces
     {
         "F:/VR/OpenXR/OpenXR-OpenGL-Example/skybox/right.jpg",
@@ -1265,7 +1204,7 @@ static void OpenGLInitializeResources()
     glUseProgram(g_programSkybox);
     glUniform1i(glGetUniformLocation(g_programSkybox, "skybox"), 0);
 
-    // quad
+    // quad(plane for right eye)
     //unsigned int VBO, VAO, EBO;
     glGenVertexArrays(1, &q_vao);
     glGenBuffers(1, &q_vbo);
@@ -1292,7 +1231,7 @@ static void OpenGLInitializeResources()
     qudaTexture = loadquadTexture(path);
     
     
-    // for the pbo
+    // for the pbo of framebuffer initilization
     GLuint Width = 2064;
     GLuint Height = 2096;
     
@@ -1305,7 +1244,7 @@ static void OpenGLInitializeResources()
     glBufferData(GL_PIXEL_PACK_BUFFER, Width* Height * 4, 0, GL_STREAM_READ);
     glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
-    // for depth buffer
+    // for the pbo of depth buffer initilization
     glGenBuffers(2, _PBODepth);
     glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBODepth[0]);
     glBufferData(GL_PIXEL_PACK_BUFFER, Width* Height * 4, 0, GL_STREAM_READ);
@@ -1314,21 +1253,7 @@ static void OpenGLInitializeResources()
     glBufferData(GL_PIXEL_PACK_BUFFER, Width* Height * 4, 0, GL_STREAM_READ);
     glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
   
-    //glGenBuffers(1, &pboImageBack);
-    //glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboImageBack);
-    //glBufferData(GL_PIXEL_UNPACK_BUFFER, Width* Height* 3, 0, GL_STREAM_DRAW); // Assuming your image has 'channels' number of channels
-
-    ////GLuint textureID;
-    //glGenTextures(1, &textureBack);
-    //glBindTexture(GL_TEXTURE_2D, textureBack);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, GL_BGR, GL_UNSIGNED_BYTE, 0);
-    //glBindTexture(GL_TEXTURE_2D, 0);
-    //glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-
-
-    //for pbo read back
+    //for pbo read back to right eye plane
     glGenBuffers(2, pbo_read);
     for (int i = 0; i < 2; i++) {
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo_read[i]);
@@ -1346,33 +1271,8 @@ static void OpenGLInitializeResources()
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, GL_BGR, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-
-    //scene1
-
-    //glGenVertexArrays(1, &Scene1_vao);
-    //glGenBuffers(1, &Scene1_vbo);
-
-    //glBindVertexArray(Scene1_vao);
-
-    //glBindBuffer(GL_ARRAY_BUFFER, Scene1_vbo);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(Scene1vertices), Scene1vertices, GL_STATIC_DRAW);
-
-    //// position attribute
-    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    //glEnableVertexAttribArray(0);
-    //// texture coord attribute
-    //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    //glEnableVertexAttribArray(1);
-
-
-    //std::string path1 = "F:/VR/OpenXR/OpenXR-OpenGL-Example/skybox/test/vixiefh_2K_Albedo.jpg";
-    //textureScene1 = loadquadTexture(path1);
-
-    //glUseProgram(g_programScene1);
-    //glUniform1i(glGetUniformLocation(g_programScene1, "texture1"), 0);
-    //glUniform1i(glGetUniformLocation(g_programScene1, "texture2"), 1);
-    //Model ourModel("F:/VR/OpenXR/OpenXR-OpenGL-model/skybox/objects/backpack/backpack.obj");
+    
+    // initilzation the model
     ourModelPtr = std::make_unique<Model>("F:/VR/OpenXR/OpenXR-OpenGL-model/skybox/objects/backpack/backpack.obj");
 }
 
@@ -1510,270 +1410,270 @@ static uint32_t OpenGLGetDepthTexture(uint32_t colorTexture)
     return depthTexture;
 }
 
-static void OpenGLRenderView(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage,
-                int64_t swapchainFormat, const std::vector<Space>& spaces)
-{
-    CHECK(layerView.subImage.imageArrayIndex == 0);  // Texture arrays not supported.
-    UNUSED_PARM(swapchainFormat);                    // Not used in this function for now.
-
-    glBindFramebuffer(GL_FRAMEBUFFER, g_swapchainFramebuffer);
-
-    const uint32_t colorTexture = reinterpret_cast<const XrSwapchainImageOpenGLKHR*>(swapchainImage)->image;
-
-    glViewport(static_cast<GLint>(layerView.subImage.imageRect.offset.x),
-               static_cast<GLint>(layerView.subImage.imageRect.offset.y),
-               static_cast<GLsizei>(layerView.subImage.imageRect.extent.width),
-               static_cast<GLsizei>(layerView.subImage.imageRect.extent.height));
-
-    glFrontFace(GL_CW);
-    glCullFace(GL_BACK);
-    // Disable back-face culling so we can see the inside of the world-space cube
-    glDisable(GL_CULL_FACE);
-    //glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
-    //glEnable(GL_TEXTURE_2D);
-    const uint32_t depthTexture = OpenGLGetDepthTexture(colorTexture);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
-
-    // Clear swapchain and depth buffer.
-    glClearColor(DarkSlateGray[0], DarkSlateGray[1], DarkSlateGray[2], DarkSlateGray[3]);
-    glClearDepth(1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-    // Set shaders and uniform variables.
-    glUseProgram(g_program);
-    
-    const auto& pose = layerView.pose;
-    XrMatrix4x4f proj;
-    XrMatrix4x4f_CreateProjectionFov(&proj, GRAPHICS_OPENGL, layerView.fov, 0.05f, 100.0f);
-    XrMatrix4x4f toView;
-    XrVector3f scale{1.f, 1.f, 1.f};
-    XrMatrix4x4f_CreateTranslationRotationScale(&toView, &pose.position, &pose.orientation, &scale);
-    XrMatrix4x4f view;
-    XrMatrix4x4f_InvertRigidBody(&view, &toView);
-    XrMatrix4x4f vp;
-    XrMatrix4x4f_Multiply(&vp, &proj, &view);
-
-    // Set cube primitive data.
-    glBindVertexArray(g_vao);
-
-    glBindBuffer(GL_ARRAY_BUFFER, g_cubeVertexBuffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_cubeIndexBuffer);
-    // Things drawn here will appear in world space at the scale specified above (if scale = 1 then
-    // unit scale).  The Model transform and scale will adjust where and how large they are.
-    // Here, we draw a cube that is 10 meters large located at the origin.
-    /// @todo Replace with the things you'd like to be drawn in the world.
-    {
-        XrPosef id = Math::Pose::Identity();
-        XrVector3f worldCubeScale{10.f, 3.f, 10.f};
-        // Compute the model-view-projection transform and set it..
-        XrMatrix4x4f model;
-        XrMatrix4x4f_CreateTranslationRotationScale(&model, &id.position, &id.orientation, &worldCubeScale);
-        XrMatrix4x4f mvp;
-        XrMatrix4x4f_Multiply(&mvp, &vp, &model);
-        glUniformMatrix4fv(g_modelViewProjectionUniformLocation, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&mvp));
-
-        // Draw the world cube.
-        //glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(ArraySize(Geometry::c_cubeIndices)), GL_UNSIGNED_SHORT, nullptr);
-    }
-
-    // Render a cube within each of the spaces we've been asked to render, at the requested sizes.  These show
-    // the centers of each of the spaces we defined.
-    /// @todo Use the name of each space to determine what to draw in it.
-    //int i = 0;
-    for (const Space& space : spaces) {
-        if (g_verbosity >= 10) {
-            std::cout << " Rendering " << space.Name << " space" << std::endl;
-        }
-        // Compute the model-view-projection transform and set it..
-        XrMatrix4x4f model;
-        XrMatrix4x4f_CreateTranslationRotationScale(&model, &space.Pose.position, &space.Pose.orientation, &space.Scale);
-        XrMatrix4x4f mvp;
-        XrMatrix4x4f_Multiply(&mvp, &vp, &model);
-        glUniformMatrix4fv(g_modelViewProjectionUniformLocation, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&mvp));
-
-        // Draw the cube.
-        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(ArraySize(Geometry::c_cubeIndices)), GL_UNSIGNED_SHORT, nullptr);
-    }
-
-
-
-    {
-        // draw skybox as last
-        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
-        glUseProgram(g_programSkybox);
-        //view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
-       //skyboxShader.setMat4("view", view);
-        glUniformMatrix4fv(glGetUniformLocation(g_programSkybox, "view"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&view));
-        //skyboxShader.setMat4("projection", projection);
-        glUniformMatrix4fv(glGetUniformLocation(g_programSkybox, "projection"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&proj));
-        // skybox cube
-        glBindVertexArray(skyboxVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
-        glDepthFunc(GL_LESS); // set depth function back to default
-    }
-
-   
-    //cv::Mat dst;
-    // Convert to grayscale
-    //cv::Mat gray;
-    //cv::cvtColor(image1, gray, cv::COLOR_BGRA2GRAY);
-    //cv::threshold(image1, dst, 254, 255, cv::THRESH_BINARY_INV);  // Convert white to black and vice versa
-    //cv::imshow("mask frame", image1); // Display the image
-    //cv::waitKey(1); // Update the window
-
-    //GLint viewport[4];
-    //glGetIntegerv(GL_VIEWPORT, viewport);
-    //int x = viewport[0];
-    //int y = viewport[1];
-    //int width = viewport[2];
-    //int height = viewport[3];
-
-    //std::vector<float> depthValues(width * height);
-    //glReadPixels(x, y, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, depthValues.data());
-
-    //cv::Mat depthMap(height, width, CV_32FC1, depthValues.data());
-    //cv::flip(depthMap, depthMap, 0);
-
-    //cv::imshow("OpenGL depth", depthMap); // Display the image
-    //cv::waitKey(1); // Update the window
-    
-    // for the pbo
-// Bind the PBO for the current frame
-
-    GLint viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    int x = viewport[0];
-    int y = viewport[1];
-    int width = viewport[2];
-    int height = viewport[3];
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBO[index]);
-
-    // Read the pixels into the PBO
-    glReadPixels(x, y, width, height, GL_BGR, GL_UNSIGNED_BYTE, 0);
-
-    // Process the pixels from the previous frame
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBO[1 - index]);
-    GLubyte* ptr = (GLubyte*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
-    
-    //cv::Mat inpainted;
-    if (ptr)
-    {
-        cv::Mat img(height, width, CV_8UC3, ptr);
-        // Process img with OpenCV...
-        cv::flip(img, img, 0); // Flip the image vertically
-
-        //cv::imshow("OpenGL Frame", img); // Display the image
-        //cv::waitKey(1); // Update the window
-
-        cv::Mat gray;
-        cv::cvtColor(img, gray, cv::COLOR_BGRA2GRAY);
-
-        // Threshold the grayscale image
-        cv::Mat binary;
-        cv::threshold(gray, binary, 254, 255, cv::THRESH_BINARY_INV);
-        //cv::imshow("OpenGL Frame", binary); // Display the image
-        //cv::waitKey(1); // Update the window
-        dr::PixMix pm;
-        dr::det::PixMixParams params;
-        params.alpha = 0.0f;			// 0.0f means no spatial cost considered
-        params.maxItr = 1;				// set to 1 to crank up the speed
-        params.maxRandSearchItr = 1;	// set to 1 to crank up the speed
-        bool debugViz = false;
-        pm.Run(img, binary, inpainted, params, debugViz);
-        //inpainted = img.clone();
-        cv::imshow("Inpainted color image", inpainted);
-        cv::waitKey(1);;
-        // Unmap the buffer
-        glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-    }
-    
-    // Unbind the PBO
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-
-    // flip index for next frame
-    index = 1 - index;
-
-    
-    // draw a plane
-    //cv::Mat image1 = CaptureOpenGLFrame();
-
-
-    ////cv::imshow("Inpainted color image1", image1);
-    ////cv::waitKey(1);
-
-    // transfer back to OpengL
-    //cv::flip(inpainted, inpainted, 0);
-    //glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo_read[uploadIndex]);
-    //GLubyte* mem = (GLubyte*)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
-    //if (mem)
-    //{
-    //    memcpy(mem, inpainted.data, width * height * 3);  // Assumes the image is BGR
-    //    glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
-
-    //    // Update texture with the PBO data
-    //    glBindTexture(GL_TEXTURE_2D, textureBack);
-    //    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, 0);
-    //    glUseProgram(g_programQuad);
-    //    glBindVertexArray(q_vao);
-    //    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-
-    //}
-
-    //glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-
-    //uploadIndex = 1 - uploadIndex;
-
-
-
-
-    // single pbo
-    //glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboImageBack);
-    //void* mem = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
-    //memcpy(mem, inpainted.ptr(), width* height* 3); // Copy image data into PBO
-    //glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
-
-    //// Use PBO to update texture
-    //glBindTexture(GL_TEXTURE_2D, textureBack);
-    //glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboImageBack);
-    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, 0);
-    //glUseProgram(g_programQuad);
-    //glBindVertexArray(q_vao);
-    //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    //glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-    
-    // regular 
-    //qudaTexture = loadInpaintedTexture(inpainted);
-    //{
-    //    glBindTexture(GL_TEXTURE_2D, qudaTexture);
-
-    //    // render container
-    //    glUseProgram(g_programQuad);
-    //    glBindVertexArray(q_vao);
-    //    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    //}
-
-    //glDeleteTextures(1, &qudaTexture);
-
-    //glDeleteTextures(1, &textureBack);
-    //glDeleteBuffers(1, &pboImageBack);
-    glBindVertexArray(0);
-    glUseProgram(0);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // Swap our window every other eye for RenderDoc
-    static int everyOther = 0;
-    if ((everyOther++ & 1) != 0) {
-        ksGpuWindow_SwapBuffers(&g_window);
-    }
-}
+//static void OpenGLRenderView_Test(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage,
+//                int64_t swapchainFormat, const std::vector<Space>& spaces)
+//{
+//    CHECK(layerView.subImage.imageArrayIndex == 0);  // Texture arrays not supported.
+//    UNUSED_PARM(swapchainFormat);                    // Not used in this function for now.
+//
+//    glBindFramebuffer(GL_FRAMEBUFFER, g_swapchainFramebuffer);
+//
+//    const uint32_t colorTexture = reinterpret_cast<const XrSwapchainImageOpenGLKHR*>(swapchainImage)->image;
+//
+//    glViewport(static_cast<GLint>(layerView.subImage.imageRect.offset.x),
+//               static_cast<GLint>(layerView.subImage.imageRect.offset.y),
+//               static_cast<GLsizei>(layerView.subImage.imageRect.extent.width),
+//               static_cast<GLsizei>(layerView.subImage.imageRect.extent.height));
+//
+//    glFrontFace(GL_CW);
+//    glCullFace(GL_BACK);
+//    // Disable back-face culling so we can see the inside of the world-space cube
+//    glDisable(GL_CULL_FACE);
+//    //glEnable(GL_CULL_FACE);
+//    glEnable(GL_DEPTH_TEST);
+//    //glEnable(GL_TEXTURE_2D);
+//    const uint32_t depthTexture = OpenGLGetDepthTexture(colorTexture);
+//
+//    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
+//    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
+//
+//    // Clear swapchain and depth buffer.
+//    glClearColor(DarkSlateGray[0], DarkSlateGray[1], DarkSlateGray[2], DarkSlateGray[3]);
+//    glClearDepth(1.0f);
+//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+//
+//    // Set shaders and uniform variables.
+//    glUseProgram(g_program);
+//    
+//    const auto& pose = layerView.pose;
+//    XrMatrix4x4f proj;
+//    XrMatrix4x4f_CreateProjectionFov(&proj, GRAPHICS_OPENGL, layerView.fov, 0.05f, 100.0f);
+//    XrMatrix4x4f toView;
+//    XrVector3f scale{1.f, 1.f, 1.f};
+//    XrMatrix4x4f_CreateTranslationRotationScale(&toView, &pose.position, &pose.orientation, &scale);
+//    XrMatrix4x4f view;
+//    XrMatrix4x4f_InvertRigidBody(&view, &toView);
+//    XrMatrix4x4f vp;
+//    XrMatrix4x4f_Multiply(&vp, &proj, &view);
+//
+//    // Set cube primitive data.
+//    glBindVertexArray(g_vao);
+//
+//    glBindBuffer(GL_ARRAY_BUFFER, g_cubeVertexBuffer);
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_cubeIndexBuffer);
+//    // Things drawn here will appear in world space at the scale specified above (if scale = 1 then
+//    // unit scale).  The Model transform and scale will adjust where and how large they are.
+//    // Here, we draw a cube that is 10 meters large located at the origin.
+//    /// @todo Replace with the things you'd like to be drawn in the world.
+//    {
+//        XrPosef id = Math::Pose::Identity();
+//        XrVector3f worldCubeScale{10.f, 3.f, 10.f};
+//        // Compute the model-view-projection transform and set it..
+//        XrMatrix4x4f model;
+//        XrMatrix4x4f_CreateTranslationRotationScale(&model, &id.position, &id.orientation, &worldCubeScale);
+//        XrMatrix4x4f mvp;
+//        XrMatrix4x4f_Multiply(&mvp, &vp, &model);
+//        glUniformMatrix4fv(g_modelViewProjectionUniformLocation, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&mvp));
+//
+//        // Draw the world cube.
+//        //glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(ArraySize(Geometry::c_cubeIndices)), GL_UNSIGNED_SHORT, nullptr);
+//    }
+//
+//    // Render a cube within each of the spaces we've been asked to render, at the requested sizes.  These show
+//    // the centers of each of the spaces we defined.
+//    /// @todo Use the name of each space to determine what to draw in it.
+//    //int i = 0;
+//    for (const Space& space : spaces) {
+//        if (g_verbosity >= 10) {
+//            std::cout << " Rendering " << space.Name << " space" << std::endl;
+//        }
+//        // Compute the model-view-projection transform and set it..
+//        XrMatrix4x4f model;
+//        XrMatrix4x4f_CreateTranslationRotationScale(&model, &space.Pose.position, &space.Pose.orientation, &space.Scale);
+//        XrMatrix4x4f mvp;
+//        XrMatrix4x4f_Multiply(&mvp, &vp, &model);
+//        glUniformMatrix4fv(g_modelViewProjectionUniformLocation, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&mvp));
+//
+//        // Draw the cube.
+//        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(ArraySize(Geometry::c_cubeIndices)), GL_UNSIGNED_SHORT, nullptr);
+//    }
+//
+//
+//
+//    {
+//        // draw skybox as last
+//        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+//        glUseProgram(g_programSkybox);
+//        //view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+//       //skyboxShader.setMat4("view", view);
+//        glUniformMatrix4fv(glGetUniformLocation(g_programSkybox, "view"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&view));
+//        //skyboxShader.setMat4("projection", projection);
+//        glUniformMatrix4fv(glGetUniformLocation(g_programSkybox, "projection"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&proj));
+//        // skybox cube
+//        glBindVertexArray(skyboxVAO);
+//        glActiveTexture(GL_TEXTURE0);
+//        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+//        glDrawArrays(GL_TRIANGLES, 0, 36);
+//        glBindVertexArray(0);
+//        glDepthFunc(GL_LESS); // set depth function back to default
+//    }
+//
+//   
+//    //cv::Mat dst;
+//    // Convert to grayscale
+//    //cv::Mat gray;
+//    //cv::cvtColor(image1, gray, cv::COLOR_BGRA2GRAY);
+//    //cv::threshold(image1, dst, 254, 255, cv::THRESH_BINARY_INV);  // Convert white to black and vice versa
+//    //cv::imshow("mask frame", image1); // Display the image
+//    //cv::waitKey(1); // Update the window
+//
+//    //GLint viewport[4];
+//    //glGetIntegerv(GL_VIEWPORT, viewport);
+//    //int x = viewport[0];
+//    //int y = viewport[1];
+//    //int width = viewport[2];
+//    //int height = viewport[3];
+//
+//    //std::vector<float> depthValues(width * height);
+//    //glReadPixels(x, y, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, depthValues.data());
+//
+//    //cv::Mat depthMap(height, width, CV_32FC1, depthValues.data());
+//    //cv::flip(depthMap, depthMap, 0);
+//
+//    //cv::imshow("OpenGL depth", depthMap); // Display the image
+//    //cv::waitKey(1); // Update the window
+//    
+//    // for the pbo
+//// Bind the PBO for the current frame
+//
+//    GLint viewport[4];
+//    glGetIntegerv(GL_VIEWPORT, viewport);
+//    int x = viewport[0];
+//    int y = viewport[1];
+//    int width = viewport[2];
+//    int height = viewport[3];
+//    glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBO[index]);
+//
+//    // Read the pixels into the PBO
+//    glReadPixels(x, y, width, height, GL_BGR, GL_UNSIGNED_BYTE, 0);
+//
+//    // Process the pixels from the previous frame
+//    glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBO[1 - index]);
+//    GLubyte* ptr = (GLubyte*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+//    
+//    //cv::Mat inpainted;
+//    if (ptr)
+//    {
+//        cv::Mat img(height, width, CV_8UC3, ptr);
+//        // Process img with OpenCV...
+//        cv::flip(img, img, 0); // Flip the image vertically
+//
+//        //cv::imshow("OpenGL Frame", img); // Display the image
+//        //cv::waitKey(1); // Update the window
+//
+//        cv::Mat gray;
+//        cv::cvtColor(img, gray, cv::COLOR_BGRA2GRAY);
+//
+//        // Threshold the grayscale image
+//        cv::Mat binary;
+//        cv::threshold(gray, binary, 254, 255, cv::THRESH_BINARY_INV);
+//        //cv::imshow("OpenGL Frame", binary); // Display the image
+//        //cv::waitKey(1); // Update the window
+//        dr::PixMix pm;
+//        dr::det::PixMixParams params;
+//        params.alpha = 0.0f;			// 0.0f means no spatial cost considered
+//        params.maxItr = 1;				// set to 1 to crank up the speed
+//        params.maxRandSearchItr = 1;	// set to 1 to crank up the speed
+//        bool debugViz = false;
+//        pm.Run(img, binary, inpainted, params, debugViz);
+//        //inpainted = img.clone();
+//        cv::imshow("Inpainted color image", inpainted);
+//        cv::waitKey(1);;
+//        // Unmap the buffer
+//        glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+//    }
+//    
+//    // Unbind the PBO
+//    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+//
+//    // flip index for next frame
+//    index = 1 - index;
+//
+//    
+//    // draw a plane
+//    //cv::Mat image1 = CaptureOpenGLFrame();
+//
+//
+//    ////cv::imshow("Inpainted color image1", image1);
+//    ////cv::waitKey(1);
+//
+//    // transfer back to OpengL
+//    //cv::flip(inpainted, inpainted, 0);
+//    //glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo_read[uploadIndex]);
+//    //GLubyte* mem = (GLubyte*)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+//    //if (mem)
+//    //{
+//    //    memcpy(mem, inpainted.data, width * height * 3);  // Assumes the image is BGR
+//    //    glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+//
+//    //    // Update texture with the PBO data
+//    //    glBindTexture(GL_TEXTURE_2D, textureBack);
+//    //    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, 0);
+//    //    glUseProgram(g_programQuad);
+//    //    glBindVertexArray(q_vao);
+//    //    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+//
+//
+//    //}
+//
+//    //glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+//
+//    //uploadIndex = 1 - uploadIndex;
+//
+//
+//
+//
+//    // single pbo
+//    //glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboImageBack);
+//    //void* mem = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+//    //memcpy(mem, inpainted.ptr(), width* height* 3); // Copy image data into PBO
+//    //glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+//
+//    //// Use PBO to update texture
+//    //glBindTexture(GL_TEXTURE_2D, textureBack);
+//    //glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboImageBack);
+//    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, 0);
+//    //glUseProgram(g_programQuad);
+//    //glBindVertexArray(q_vao);
+//    //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+//    //glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+//    
+//    // regular 
+//    //qudaTexture = loadInpaintedTexture(inpainted);
+//    //{
+//    //    glBindTexture(GL_TEXTURE_2D, qudaTexture);
+//
+//    //    // render container
+//    //    glUseProgram(g_programQuad);
+//    //    glBindVertexArray(q_vao);
+//    //    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+//    //}
+//
+//    //glDeleteTextures(1, &qudaTexture);
+//
+//    //glDeleteTextures(1, &textureBack);
+//    //glDeleteBuffers(1, &pboImageBack);
+//    glBindVertexArray(0);
+//    glUseProgram(0);
+//
+//    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//
+//    // Swap our window every other eye for RenderDoc
+//    static int everyOther = 0;
+//    if ((everyOther++ & 1) != 0) {
+//        ksGpuWindow_SwapBuffers(&g_window);
+//    }
+//}
 
 
 static void OpenGLRenderViewRight(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage,
@@ -1822,68 +1722,8 @@ static void OpenGLRenderViewRight(const XrCompositionLayerProjectionView& layerV
     XrMatrix4x4f vp;
     XrMatrix4x4f_Multiply(&vp, &proj, &view);
 
-    // Set cube primitive data.
-    glBindVertexArray(g_vao);
 
-    glBindBuffer(GL_ARRAY_BUFFER, g_cubeVertexBuffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_cubeIndexBuffer);
-    // Things drawn here will appear in world space at the scale specified above (if scale = 1 then
-    // unit scale).  The Model transform and scale will adjust where and how large they are.
-    // Here, we draw a cube that is 10 meters large located at the origin.
-    /// @todo Replace with the things you'd like to be drawn in the world.
-    {
-        XrPosef id = Math::Pose::Identity();
-        XrVector3f worldCubeScale{ 10.f, 3.f, 10.f };
-        // Compute the model-view-projection transform and set it..
-        XrMatrix4x4f model;
-        XrMatrix4x4f_CreateTranslationRotationScale(&model, &id.position, &id.orientation, &worldCubeScale);
-        XrMatrix4x4f mvp;
-        XrMatrix4x4f_Multiply(&mvp, &vp, &model);
-        glUniformMatrix4fv(g_modelViewProjectionUniformLocation, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&mvp));
-
-        // Draw the world cube.
-        //glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(ArraySize(Geometry::c_cubeIndices)), GL_UNSIGNED_SHORT, nullptr);
-    }
-
-    // Render a cube within each of the spaces we've been asked to render, at the requested sizes.  These show
-    // the centers of each of the spaces we defined.
-    /// @todo Use the name of each space to determine what to draw in it.
-    //int i = 0;
-    for (const Space& space : spaces) {
-        if (g_verbosity >= 10) {
-            std::cout << " Rendering " << space.Name << " space" << std::endl;
-        }
-        // Compute the model-view-projection transform and set it..
-        XrMatrix4x4f model;
-        XrMatrix4x4f_CreateTranslationRotationScale(&model, &space.Pose.position, &space.Pose.orientation, &space.Scale);
-        XrMatrix4x4f mvp;
-        XrMatrix4x4f_Multiply(&mvp, &vp, &model);
-        glUniformMatrix4fv(g_modelViewProjectionUniformLocation, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&mvp));
-
-        // Draw the cube.
-        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(ArraySize(Geometry::c_cubeIndices)), GL_UNSIGNED_SHORT, nullptr);
-    }
-
-
-
-    {
-        // draw skybox as last
-        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
-        glUseProgram(g_programSkybox);
-        //view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
-       //skyboxShader.setMat4("view", view);
-        glUniformMatrix4fv(glGetUniformLocation(g_programSkybox, "view"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&view));
-        //skyboxShader.setMat4("projection", projection);
-        glUniformMatrix4fv(glGetUniformLocation(g_programSkybox, "projection"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&proj));
-        // skybox cube
-        glBindVertexArray(skyboxVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
-        glDepthFunc(GL_LESS); // set depth function back to default
-    }
-
+    // render the inpainted image back to right eye
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
     int x = viewport[0];
@@ -2019,46 +1859,7 @@ static void OpenGLRenderViewScene1(const XrCompositionLayerProjectionView& layer
         glDepthFunc(GL_LESS); // set depth function back to default
     }
 
-    // render
-// ------
-    //{
-    //    //glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    //    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    //    // bind textures on corresponding texture units
-    //    glActiveTexture(GL_TEXTURE0);
-    //    glBindTexture(GL_TEXTURE_2D, textureScene1);
-    //    //glActiveTexture(GL_TEXTURE1);
-    //    //glBindTexture(GL_TEXTURE_2D, texture2);
-
-    //    // activate shader
-    //    glUseProgram(g_programScene1);
-    //    // pass projection matrix to shader (note that in this case it could change every frame)
-    //    glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "projection"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&proj));
-
-    //    // camera/view transformation
-    //    glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "view"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&view));
-
-    //    // render boxes
-    //    glBindVertexArray(Scene1_vao);
-    //    for (unsigned int i = 0; i < 9; i++)
-    //    {
-    //        // calculate the model matrix for each object and pass it to shader before drawing
-    //        glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-    //        model = glm::translate(model, cubePositions[i]);
-    //        float angle = 20.0f * i;
-    //        model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-    //        glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "model"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&model));
-
-    //        glDrawArrays(GL_TRIANGLES, 0, 36);
-    //    }
-
-    //}
     glUseProgram(g_programScene1);
-    // view/projection transformations
-    //glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-    //glm::mat4 view = camera.GetViewMatrix();
-    //ourShader.setMat4("projection", projection);
     glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "projection"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&proj));
     glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "view"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&view));
 
@@ -2122,15 +1923,12 @@ static void OpenGLRenderViewScene1(const XrCompositionLayerProjectionView& layer
         {
             shift_image = warp_image_based_on_depth(resized_image, resized_depthimage, 50);
         }
-
         else // add manully
         {
             img.copyTo(shift_image);
         }
         
-        //cv::imshow("OpenGL Frame shift", shift_image); // Display the image
-        //cv::waitKey(1); // Update the window
-
+        // create the mask image
         cv::Mat gray;
         cv::cvtColor(shift_image, gray, cv::COLOR_BGRA2GRAY);
 
@@ -2138,20 +1936,13 @@ static void OpenGLRenderViewScene1(const XrCompositionLayerProjectionView& layer
         cv::Mat binary;
         cv::threshold(gray, binary, 254, 255, cv::THRESH_BINARY_INV); // create mask image
         
-        //cv::imshow("OpenGL Frame", binary); // Display the image
-        //cv::waitKey(1); // Update the window
-       
-
         dr::PixMix pm;
         dr::det::PixMixParams params;
         params.alpha = 1.0f;			// 0.0f means no spatial cost considered
         params.maxItr = 3;				// set to 1 to crank up the speed
         params.maxRandSearchItr = 3;	// set to 1 to crank up the speed
         bool debugViz = false;
-        pm.Run(shift_image, binary, inpainted, params, debugViz);
-        //inpainted = img.clone();
-        cv::imshow("Inpainted color image", inpainted);
-        cv::waitKey(1);;
+        pm.Execute(shift_image, binary, inpainted, params, debugViz);
        
         glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBO[1 - index]);
         glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
@@ -2180,257 +1971,257 @@ static void OpenGLRenderViewScene1(const XrCompositionLayerProjectionView& layer
     }
 }
 
-static void OpenGLRenderViewScene2(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage,
-    int64_t swapchainFormat, const std::vector<Space>& spaces)
-{
-    CHECK(layerView.subImage.imageArrayIndex == 0);  // Texture arrays not supported.
-    UNUSED_PARM(swapchainFormat);                    // Not used in this function for now.
-
-    glBindFramebuffer(GL_FRAMEBUFFER, g_swapchainFramebuffer);
-
-    const uint32_t colorTexture = reinterpret_cast<const XrSwapchainImageOpenGLKHR*>(swapchainImage)->image;
-
-    glViewport(static_cast<GLint>(layerView.subImage.imageRect.offset.x),
-        static_cast<GLint>(layerView.subImage.imageRect.offset.y),
-        static_cast<GLsizei>(layerView.subImage.imageRect.extent.width),
-        static_cast<GLsizei>(layerView.subImage.imageRect.extent.height));
-
-    glFrontFace(GL_CW);
-    glCullFace(GL_BACK);
-    // Disable back-face culling so we can see the inside of the world-space cube
-    glDisable(GL_CULL_FACE);
-    //glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
-    //glEnable(GL_TEXTURE_2D);
-    const uint32_t depthTexture = OpenGLGetDepthTexture(colorTexture);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
-
-    // Clear swapchain and depth buffer.
-    glClearColor(DarkSlateGray[0], DarkSlateGray[1], DarkSlateGray[2], DarkSlateGray[3]);
-    glClearDepth(1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-    // Set shaders and uniform variables.
-    glUseProgram(g_program);
-
-    const auto& pose = layerView.pose;
-    XrMatrix4x4f proj;
-    XrMatrix4x4f_CreateProjectionFov(&proj, GRAPHICS_OPENGL, layerView.fov, 0.05f, 100.0f);
-    XrMatrix4x4f toView;
-    XrVector3f scale{ 1.f, 1.f, 1.f };
-    XrMatrix4x4f_CreateTranslationRotationScale(&toView, &pose.position, &pose.orientation, &scale);
-    XrMatrix4x4f view;
-    XrMatrix4x4f_InvertRigidBody(&view, &toView);
-    XrMatrix4x4f vp;
-    XrMatrix4x4f_Multiply(&vp, &proj, &view);
-
-    // Set cube primitive data.
-    glBindVertexArray(g_vao);
-
-    glBindBuffer(GL_ARRAY_BUFFER, g_cubeVertexBuffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_cubeIndexBuffer);
-
-    // Render a cube within each of the spaces we've been asked to render, at the requested sizes.  These show
-    // the centers of each of the spaces we defined.
-    /// @todo Use the name of each space to determine what to draw in it.
-    //int i = 0;
-    for (const Space& space : spaces) {
-        if (g_verbosity >= 10) {
-            std::cout << " Rendering " << space.Name << " space" << std::endl;
-        }
-        // Compute the model-view-projection transform and set it..
-        XrMatrix4x4f model;
-        XrMatrix4x4f_CreateTranslationRotationScale(&model, &space.Pose.position, &space.Pose.orientation, &space.Scale);
-        XrMatrix4x4f mvp;
-        XrMatrix4x4f_Multiply(&mvp, &vp, &model);
-        glUniformMatrix4fv(g_modelViewProjectionUniformLocation, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&mvp));
-
-        // Draw the cube.
-        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(ArraySize(Geometry::c_cubeIndices)), GL_UNSIGNED_SHORT, nullptr);
-    }
-
-
-
-    {
-        // draw skybox as last
-        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
-        glUseProgram(g_programSkybox);
-        //view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
-       //skyboxShader.setMat4("view", view);
-        glUniformMatrix4fv(glGetUniformLocation(g_programSkybox, "view"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&view));
-        //skyboxShader.setMat4("projection", projection);
-        glUniformMatrix4fv(glGetUniformLocation(g_programSkybox, "projection"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&proj));
-        // skybox cube
-        glBindVertexArray(skyboxVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
-        glDepthFunc(GL_LESS); // set depth function back to default
-    }
-
-    // render
-// ------
-    //{
-    //    //glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    //    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    //    // bind textures on corresponding texture units
-    //    glActiveTexture(GL_TEXTURE0);
-    //    glBindTexture(GL_TEXTURE_2D, textureScene1);
-    //    //glActiveTexture(GL_TEXTURE1);
-    //    //glBindTexture(GL_TEXTURE_2D, texture2);
-
-    //    // activate shader
-    //    glUseProgram(g_programScene1);
-    //    // pass projection matrix to shader (note that in this case it could change every frame)
-    //    glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "projection"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&proj));
-
-    //    // camera/view transformation
-    //    glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "view"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&view));
-
-    //    // render boxes
-    //    glBindVertexArray(Scene1_vao);
-    //    for (unsigned int i = 0; i < 9; i++)
-    //    {
-    //        // calculate the model matrix for each object and pass it to shader before drawing
-    //        glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-    //        model = glm::translate(model, cubePositions[i]);
-    //        float angle = 20.0f * i;
-    //        model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-    //        glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "model"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&model));
-
-    //        glDrawArrays(GL_TRIANGLES, 0, 36);
-    //    }
-
-    //}
-    glUseProgram(g_programScene1);
-    // view/projection transformations
-    //glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-    //glm::mat4 view = camera.GetViewMatrix();
-    //ourShader.setMat4("projection", projection);
-    glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "projection"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&proj));
-    glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "view"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&view));
-
-    // render the loaded model
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, 0.0f, -1.0f)); // translate it down so it's at the center of the scene
-    model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));	// it's a bit too big for our scene, so scale it down
-    //ourShader.setMat4("model", model);
-    glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "model"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&model));
-    //ourModel.Draw(ourShader);
-    ourModelPtr->Draw(g_programScene1);
-
-    GLint viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    int x = viewport[0];
-    int y = viewport[1];
-    int width = viewport[2];
-    int height = viewport[3];
-
-
-    // Read the color framebuffer
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBO[index]);
-    glReadPixels(x, y, width, height, GL_BGR, GL_UNSIGNED_BYTE, 0);
-
-    // Map the color data from the previous frame's PBO
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBO[1 - index]);
-    GLubyte* ptr = (GLubyte*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
-
-    // Read the depth buffer
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBODepth[index]);
-    glReadPixels(x, y, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-
-    // Map the depth data from the previous frame's PBO
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBODepth[1 - index]);
-    float* depthPtr = (float*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
-
-
-    //cv::Mat inpainted;
-    if (ptr && depthPtr)
-    {
-        cv::Mat img(height, width, CV_8UC3, ptr);
-        // Process img with OpenCV...
-        cv::flip(img, img, 0); // Flip the image vertically
-        //cv::imshow("OpenGL Frame", img); // Display the image
-        //cv::waitKey(1); // Update the window
-
-        cv::Mat depthMat(height, width, CV_32FC1, depthPtr);
-        cv::Mat depthNormalized;
-        cv::normalize(depthMat, depthNormalized, 0, 255, cv::NORM_MINMAX, CV_8U);
-        depthNormalized = 255 - depthNormalized;
-        cv::flip(depthNormalized, depthNormalized, 0);
-        //cv::imshow("OpenGL Frame", depthNormalized); // Display the image
-        //cv::waitKey(1); // Update the window
-        cv::Mat resized_image;
-        cv::resize(img, resized_image, cv::Size(img.cols, img.rows));
-        cv::Mat resized_depthimage;
-        cv::resize(depthNormalized, resized_depthimage, cv::Size(depthNormalized.cols, depthNormalized.rows));
-
-        cv::Mat shift_image;
-        if (mode) // image warping
-        {
-            shift_image = warp_image_based_on_depth(resized_image, resized_depthimage, 50);
-        }
-
-        else // add manully
-        {
-            img.copyTo(shift_image);
-        }
-
-        //cv::imshow("OpenGL Frame shift", shift_image); // Display the image
-        //cv::waitKey(1); // Update the window
-
-        cv::Mat gray;
-        cv::cvtColor(shift_image, gray, cv::COLOR_BGRA2GRAY);
-
-        // Threshold the grayscale image
-        cv::Mat binary;
-        cv::threshold(gray, binary, 254, 255, cv::THRESH_BINARY_INV); // create mask image
-
-        //cv::imshow("OpenGL Frame", binary); // Display the image
-        //cv::waitKey(1); // Update the window
-
-
-        dr::PixMix pm;
-        dr::det::PixMixParams params;
-        params.alpha = 1.0f;			// 0.0f means no spatial cost considered
-        params.maxItr = 3;				// set to 1 to crank up the speed
-        params.maxRandSearchItr = 3;	// set to 1 to crank up the speed
-        bool debugViz = false;
-        pm.Run(shift_image, binary, inpainted, params, debugViz);
-        //inpainted = img.clone();
-        cv::imshow("Inpainted color image right eye", inpainted);
-        cv::waitKey(1);;
-
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBO[1 - index]);
-        glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-
-        // Unmap the depth PBO
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBODepth[1 - index]);
-        glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-    }
-
-    // Unbind the PBO
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-
-
-    // flip index for next frame
-    index = 1 - index;
-
-    glBindVertexArray(0);
-    glUseProgram(0);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // Swap our window every other eye for RenderDoc
-    static int everyOther = 0;
-    if ((everyOther++ & 1) != 0) {
-        ksGpuWindow_SwapBuffers(&g_window);
-    }
-}
+//static void OpenGLRenderViewScene2_test(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage,
+//    int64_t swapchainFormat, const std::vector<Space>& spaces)
+//{
+//    CHECK(layerView.subImage.imageArrayIndex == 0);  // Texture arrays not supported.
+//    UNUSED_PARM(swapchainFormat);                    // Not used in this function for now.
+//
+//    glBindFramebuffer(GL_FRAMEBUFFER, g_swapchainFramebuffer);
+//
+//    const uint32_t colorTexture = reinterpret_cast<const XrSwapchainImageOpenGLKHR*>(swapchainImage)->image;
+//
+//    glViewport(static_cast<GLint>(layerView.subImage.imageRect.offset.x),
+//        static_cast<GLint>(layerView.subImage.imageRect.offset.y),
+//        static_cast<GLsizei>(layerView.subImage.imageRect.extent.width),
+//        static_cast<GLsizei>(layerView.subImage.imageRect.extent.height));
+//
+//    glFrontFace(GL_CW);
+//    glCullFace(GL_BACK);
+//    // Disable back-face culling so we can see the inside of the world-space cube
+//    glDisable(GL_CULL_FACE);
+//    //glEnable(GL_CULL_FACE);
+//    glEnable(GL_DEPTH_TEST);
+//    //glEnable(GL_TEXTURE_2D);
+//    const uint32_t depthTexture = OpenGLGetDepthTexture(colorTexture);
+//
+//    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
+//    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
+//
+//    // Clear swapchain and depth buffer.
+//    glClearColor(DarkSlateGray[0], DarkSlateGray[1], DarkSlateGray[2], DarkSlateGray[3]);
+//    glClearDepth(1.0f);
+//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+//
+//    // Set shaders and uniform variables.
+//    glUseProgram(g_program);
+//
+//    const auto& pose = layerView.pose;
+//    XrMatrix4x4f proj;
+//    XrMatrix4x4f_CreateProjectionFov(&proj, GRAPHICS_OPENGL, layerView.fov, 0.05f, 100.0f);
+//    XrMatrix4x4f toView;
+//    XrVector3f scale{ 1.f, 1.f, 1.f };
+//    XrMatrix4x4f_CreateTranslationRotationScale(&toView, &pose.position, &pose.orientation, &scale);
+//    XrMatrix4x4f view;
+//    XrMatrix4x4f_InvertRigidBody(&view, &toView);
+//    XrMatrix4x4f vp;
+//    XrMatrix4x4f_Multiply(&vp, &proj, &view);
+//
+//    // Set cube primitive data.
+//    glBindVertexArray(g_vao);
+//
+//    glBindBuffer(GL_ARRAY_BUFFER, g_cubeVertexBuffer);
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_cubeIndexBuffer);
+//
+//    // Render a cube within each of the spaces we've been asked to render, at the requested sizes.  These show
+//    // the centers of each of the spaces we defined.
+//    /// @todo Use the name of each space to determine what to draw in it.
+//    //int i = 0;
+//    for (const Space& space : spaces) {
+//        if (g_verbosity >= 10) {
+//            std::cout << " Rendering " << space.Name << " space" << std::endl;
+//        }
+//        // Compute the model-view-projection transform and set it..
+//        XrMatrix4x4f model;
+//        XrMatrix4x4f_CreateTranslationRotationScale(&model, &space.Pose.position, &space.Pose.orientation, &space.Scale);
+//        XrMatrix4x4f mvp;
+//        XrMatrix4x4f_Multiply(&mvp, &vp, &model);
+//        glUniformMatrix4fv(g_modelViewProjectionUniformLocation, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&mvp));
+//
+//        // Draw the cube.
+//        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(ArraySize(Geometry::c_cubeIndices)), GL_UNSIGNED_SHORT, nullptr);
+//    }
+//
+//
+//
+//    {
+//        // draw skybox as last
+//        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+//        glUseProgram(g_programSkybox);
+//        //view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+//       //skyboxShader.setMat4("view", view);
+//        glUniformMatrix4fv(glGetUniformLocation(g_programSkybox, "view"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&view));
+//        //skyboxShader.setMat4("projection", projection);
+//        glUniformMatrix4fv(glGetUniformLocation(g_programSkybox, "projection"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&proj));
+//        // skybox cube
+//        glBindVertexArray(skyboxVAO);
+//        glActiveTexture(GL_TEXTURE0);
+//        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+//        glDrawArrays(GL_TRIANGLES, 0, 36);
+//        glBindVertexArray(0);
+//        glDepthFunc(GL_LESS); // set depth function back to default
+//    }
+//
+//    // render
+//// ------
+//    //{
+//    //    //glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+//    //    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//
+//    //    // bind textures on corresponding texture units
+//    //    glActiveTexture(GL_TEXTURE0);
+//    //    glBindTexture(GL_TEXTURE_2D, textureScene1);
+//    //    //glActiveTexture(GL_TEXTURE1);
+//    //    //glBindTexture(GL_TEXTURE_2D, texture2);
+//
+//    //    // activate shader
+//    //    glUseProgram(g_programScene1);
+//    //    // pass projection matrix to shader (note that in this case it could change every frame)
+//    //    glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "projection"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&proj));
+//
+//    //    // camera/view transformation
+//    //    glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "view"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&view));
+//
+//    //    // render boxes
+//    //    glBindVertexArray(Scene1_vao);
+//    //    for (unsigned int i = 0; i < 9; i++)
+//    //    {
+//    //        // calculate the model matrix for each object and pass it to shader before drawing
+//    //        glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+//    //        model = glm::translate(model, cubePositions[i]);
+//    //        float angle = 20.0f * i;
+//    //        model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+//    //        glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "model"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&model));
+//
+//    //        glDrawArrays(GL_TRIANGLES, 0, 36);
+//    //    }
+//
+//    //}
+//    glUseProgram(g_programScene1);
+//    // view/projection transformations
+//    //glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+//    //glm::mat4 view = camera.GetViewMatrix();
+//    //ourShader.setMat4("projection", projection);
+//    glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "projection"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&proj));
+//    glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "view"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&view));
+//
+//    // render the loaded model
+//    glm::mat4 model = glm::mat4(1.0f);
+//    model = glm::translate(model, glm::vec3(0.0f, 0.0f, -1.0f)); // translate it down so it's at the center of the scene
+//    model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));	// it's a bit too big for our scene, so scale it down
+//    //ourShader.setMat4("model", model);
+//    glUniformMatrix4fv(glGetUniformLocation(g_programScene1, "model"), 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&model));
+//    //ourModel.Draw(ourShader);
+//    ourModelPtr->Draw(g_programScene1);
+//
+//    GLint viewport[4];
+//    glGetIntegerv(GL_VIEWPORT, viewport);
+//    int x = viewport[0];
+//    int y = viewport[1];
+//    int width = viewport[2];
+//    int height = viewport[3];
+//
+//
+//    // Read the color framebuffer
+//    glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBO[index]);
+//    glReadPixels(x, y, width, height, GL_BGR, GL_UNSIGNED_BYTE, 0);
+//
+//    // Map the color data from the previous frame's PBO
+//    glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBO[1 - index]);
+//    GLubyte* ptr = (GLubyte*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+//
+//    // Read the depth buffer
+//    glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBODepth[index]);
+//    glReadPixels(x, y, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+//
+//    // Map the depth data from the previous frame's PBO
+//    glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBODepth[1 - index]);
+//    float* depthPtr = (float*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+//
+//
+//    //cv::Mat inpainted;
+//    if (ptr && depthPtr)
+//    {
+//        cv::Mat img(height, width, CV_8UC3, ptr);
+//        // Process img with OpenCV...
+//        cv::flip(img, img, 0); // Flip the image vertically
+//        //cv::imshow("OpenGL Frame", img); // Display the image
+//        //cv::waitKey(1); // Update the window
+//
+//        cv::Mat depthMat(height, width, CV_32FC1, depthPtr);
+//        cv::Mat depthNormalized;
+//        cv::normalize(depthMat, depthNormalized, 0, 255, cv::NORM_MINMAX, CV_8U);
+//        depthNormalized = 255 - depthNormalized;
+//        cv::flip(depthNormalized, depthNormalized, 0);
+//        //cv::imshow("OpenGL Frame", depthNormalized); // Display the image
+//        //cv::waitKey(1); // Update the window
+//        cv::Mat resized_image;
+//        cv::resize(img, resized_image, cv::Size(img.cols, img.rows));
+//        cv::Mat resized_depthimage;
+//        cv::resize(depthNormalized, resized_depthimage, cv::Size(depthNormalized.cols, depthNormalized.rows));
+//
+//        cv::Mat shift_image;
+//        if (mode) // image warping
+//        {
+//            shift_image = warp_image_based_on_depth(resized_image, resized_depthimage, 50);
+//        }
+//
+//        else // add manully
+//        {
+//            img.copyTo(shift_image);
+//        }
+//
+//        //cv::imshow("OpenGL Frame shift", shift_image); // Display the image
+//        //cv::waitKey(1); // Update the window
+//
+//        cv::Mat gray;
+//        cv::cvtColor(shift_image, gray, cv::COLOR_BGRA2GRAY);
+//
+//        // Threshold the grayscale image
+//        cv::Mat binary;
+//        cv::threshold(gray, binary, 254, 255, cv::THRESH_BINARY_INV); // create mask image
+//
+//        //cv::imshow("OpenGL Frame", binary); // Display the image
+//        //cv::waitKey(1); // Update the window
+//
+//
+//        dr::PixMix pm;
+//        dr::det::PixMixParams params;
+//        params.alpha = 1.0f;			// 0.0f means no spatial cost considered
+//        params.maxItr = 3;				// set to 1 to crank up the speed
+//        params.maxRandSearchItr = 3;	// set to 1 to crank up the speed
+//        bool debugViz = false;
+//        pm.Run(shift_image, binary, inpainted, params, debugViz);
+//        //inpainted = img.clone();
+//        cv::imshow("Inpainted color image right eye", inpainted);
+//        cv::waitKey(1);;
+//
+//        glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBO[1 - index]);
+//        glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+//
+//        // Unmap the depth PBO
+//        glBindBuffer(GL_PIXEL_PACK_BUFFER, _PBODepth[1 - index]);
+//        glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+//    }
+//
+//    // Unbind the PBO
+//    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+//
+//
+//    // flip index for next frame
+//    index = 1 - index;
+//
+//    glBindVertexArray(0);
+//    glUseProgram(0);
+//
+//    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//
+//    // Swap our window every other eye for RenderDoc
+//    static int everyOther = 0;
+//    if ((everyOther++ & 1) != 0) {
+//        ksGpuWindow_SwapBuffers(&g_window);
+//    }
+//}
 
 static void OpenGLTearDown()
 {
@@ -3170,15 +2961,12 @@ static bool OpenXRRenderLayer(XrTime predictedDisplayTime, std::vector<XrComposi
         const XrSwapchainImageBaseHeader* const swapchainImage = g_swapchainImages[viewSwapchain.handle][swapchainImageIndex];
         if(i == 0)
         {
-            //OpenGLRenderView(projectionLayerViews[i], swapchainImage, g_colorSwapchainFormat, spaces);
-            //OpenGLRenderViewRight(projectionLayerViews[i], swapchainImage, g_colorSwapchainFormat, spaces);
-            OpenGLRenderViewScene1(projectionLayerViews[i], swapchainImage, g_colorSwapchainFormat, spaces);
+            OpenGLRenderViewScene1(projectionLayerViews[i], swapchainImage, g_colorSwapchainFormat, spaces); // for the left eye
         }
         else
         {
-            //OpenGLRenderViewScene1(projectionLayerViews[i], swapchainImage, g_colorSwapchainFormat, spaces);
-            //OpenGLRenderViewRight(projectionLayerViews[i], swapchainImage, g_colorSwapchainFormat, spaces);
-            OpenGLRenderViewScene2(projectionLayerViews[i], swapchainImage, g_colorSwapchainFormat, spaces);
+            OpenGLRenderViewRight(projectionLayerViews[i], swapchainImage, g_colorSwapchainFormat, spaces); // for right eye
+            //OpenGLRenderViewScene2_test(projectionLayerViews[i], swapchainImage, g_colorSwapchainFormat, spaces);
         }       
 
         XrSwapchainImageReleaseInfo releaseInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};

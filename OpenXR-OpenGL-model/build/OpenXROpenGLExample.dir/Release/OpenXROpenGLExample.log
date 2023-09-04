@@ -1,50 +1,8 @@
-﻿  main.cpp
+﻿  OneLvPixMix.cpp
 F:\VR\OpenXR\OpenXR-OpenGL-Example\build\packages\opencv\build\include\opencv2/objdetect/aruco_board.hpp(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
-F:\VR\OpenXR\OpenXR-OpenGL-model\build\..\main.cpp(399,85): warning C4244: “参数”: 从“_Tp”转换到“_Tp”，可能丢失数据
-          with
-          [
-              _Tp=double
-          ]
-          and
-          [
-              _Tp=uchar
-          ]
-F:\VR\OpenXR\OpenXR-OpenGL-model\build\..\main.cpp(399,72): warning C4244: “参数”: 从“_Tp”转换到“_Tp”，可能丢失数据
-          with
-          [
-              _Tp=double
-          ]
-          and
-          [
-              _Tp=uchar
-          ]
-F:\VR\OpenXR\OpenXR-OpenGL-model\build\..\main.cpp(399,59): warning C4244: “参数”: 从“_Tp”转换到“_Tp”，可能丢失数据
-          with
-          [
-              _Tp=double
-          ]
-          and
-          [
-              _Tp=uchar
-          ]
-F:\VR\OpenXR\OpenXR-OpenGL-model\build\..\main.cpp(429,45): warning C4244: “=”: 从“_Tp”转换到“float”，可能丢失数据
-          with
-          [
-              _Tp=double
-          ]
-F:\VR\OpenXR\OpenXR-OpenGL-model\build\..\main.cpp(430,45): warning C4244: “=”: 从“_Tp”转换到“float”，可能丢失数据
-          with
-          [
-              _Tp=double
-          ]
-F:\VR\OpenXR\OpenXR-OpenGL-model\build\..\main.cpp(431,45): warning C4244: “=”: 从“_Tp”转换到“float”，可能丢失数据
-          with
-          [
-              _Tp=double
-          ]
-F:\VR\OpenXR\OpenXR-OpenGL-model\build\..\main.cpp(1026,16): warning C4101: “height”: 未引用的局部变量
-F:\VR\OpenXR\OpenXR-OpenGL-model\build\..\main.cpp(1026,24): warning C4101: “nrChannels”: 未引用的局部变量
-F:\VR\OpenXR\OpenXR-OpenGL-model\build\..\main.cpp(1026,9): warning C4101: “width”: 未引用的局部变量
+  PixMix.cpp
+F:\VR\OpenXR\OpenXR-OpenGL-Example\build\packages\opencv\build\include\opencv2/objdetect/aruco_board.hpp(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  正在生成代码...
   OpenXROpenGLExample.vcxproj -> F:\VR\OpenXR\OpenXR-OpenGL-model\build\Release\OpenXROpenGLExample.exe
   F:\VR\OpenXR\OpenXR-OpenGL-model\build\..\shaders\basic.frag
   F:\VR\OpenXR\OpenXR-OpenGL-model\build\..\shaders\basic.vert

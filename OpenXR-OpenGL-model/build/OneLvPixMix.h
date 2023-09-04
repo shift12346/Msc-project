@@ -1,9 +1,9 @@
 #pragma once
-
+// code implmentation based on the https://github.com/Mugichoko445/PixMix-Inpainting
 #include <random>
 #include <opencv2/opencv.hpp>
 
-#include "Utilities.h"
+
 
 namespace dr
 {
@@ -24,12 +24,12 @@ namespace dr
 			OneLvPixMix();
 			~OneLvPixMix();
 
-			void Init(const cv::Mat3b& color, const cv::Mat1b& mask);
-			void Run(const PixMixParams& params);
+			void Initilization(const cv::Mat3b& color, const cv::Mat1b& mask);
+			void execute(const PixMixParams& params);
 
-			cv::Mat3b* GetColorPtr();
-			cv::Mat1b* GetMaskPtr();
-			cv::Mat2i* GetPosMapPtr();
+			cv::Mat3b* RetrieveColorPointer();
+			cv::Mat1b* RetrieveMaskPointer();
+			cv::Mat2i* RetrievePositionMapPointer();
 
 		private:
 			const int borderSize;
@@ -81,15 +81,15 @@ namespace dr
 			);
 		};
 
-		inline cv::Mat3b* OneLvPixMix::GetColorPtr()
+		inline cv::Mat3b* OneLvPixMix::RetrieveColorPointer()
 		{
 			return &(mColor[WO_BORDER]);
 		}
-		inline cv::Mat1b* OneLvPixMix::GetMaskPtr()
+		inline cv::Mat1b* OneLvPixMix::RetrieveMaskPointer()
 		{
 			return &(mMask[WO_BORDER]);
 		}
-		inline cv::Mat2i* OneLvPixMix::GetPosMapPtr()
+		inline cv::Mat2i* OneLvPixMix::RetrievePositionMapPointer()
 		{
 			return &mPosMap[WO_BORDER];
 		}

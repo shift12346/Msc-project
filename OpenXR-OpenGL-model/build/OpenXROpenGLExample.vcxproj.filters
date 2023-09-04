@@ -17,7 +17,6 @@
     </ClCompile>
     <ClCompile Include="PixMix.cpp" />
     <ClCompile Include="OneLvPixMix.cpp" />
-    <ClCompile Include="Utilities.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\shaders\basic.frag">
@@ -35,7 +34,6 @@
     <None Include="..\shaders\rtt.frag">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="packages.config" />
     <None Include="..\shaders\skybox.frag">
       <Filter>Shaders</Filter>
     </None>
@@ -48,6 +46,7 @@
     <None Include="scene1.frag" />
     <None Include="scene2.vert" />
     <None Include="scene2.frag" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="skybox\back.jpg" />
@@ -60,8 +59,5 @@
   <ItemGroup>
     <ClInclude Include="PixMix.h" />
     <ClInclude Include="OneLvPixMix.h" />
-    <ClInclude Include="Utilities.h" />
-    <ClInclude Include="modelLoader.hpp" />
-    <ClInclude Include="mesh.hpp" />
   </ItemGroup>
 </Project>
